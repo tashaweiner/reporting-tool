@@ -19,13 +19,3 @@ run-frontend:
 dev:
 	@echo "👉 In one terminal, run:  run-backend"
 	@echo "👉 In another terminal, run:  run-frontend"
-
-# Download resumes from OneDrive
-fetch-resumes:
-	python backend/onedrive/download_resumes.py
-
-# Authenticate with OneDrive (only needed once)
-auth-onedrive:
-	python backend/onedrive/interactive_onedrive_auth.py
-backfill-embeddings:
-	venv/bin/python backend/scripts/backfill_embeddings.py

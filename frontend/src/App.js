@@ -1,147 +1,118 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import { useState, useEffect } from 'react';
 
-const API_URL = process.env.REACT_APP_API_URL;
+const initialLayout = {
+  title: 'My First Report',
+  sections: [
+    { type: 'text', content: '' },
+    { type: 'image', url: '' },
+    { type: 'table', data: [] },
+    { type: 'chart', data: [] }
+  ]
+};
 
-function App() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [owner, setOwner] = useState("all");
-  const [ownerOptions, setOwnerOptions] = useState([]);
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
+export default function App() {
+  const [layout, setLayout] = useState(initialLayout);
+  const [savedLayouts, setSavedLayouts] = useState([]);
 
-  const RESULTS_PER_PAGE = 25;
-
-  useEffect(() => {
-    axios
-      .get(`${API_URL}/owners`)
-      .then((res) => {
-        setOwnerOptions(res.data.owners || []);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch owners:", err);
-      });
-  }, []);
-
-  const handleSearch = () => {
-    if (!searchQuery.trim()) return;
-
-    setLoading(true);
-    setError(null);
-    setResults([]);
-    setCurrentPage(1);
-
-    axios
-      .post(`${API_URL}/search/full`, {
-        prompt: searchQuery,
-        top_k: 25,
-        owner: owner !== "all" ? owner : null,
-      })
-      .then((res) => {
-        setResults(res.data.results);
-      })
-      .catch((err) => {
-        console.error("Error during search:", err);
-        setError("Search failed.");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+  // Save layout to backend
+  const saveLayout = async () => {
+    const res = await fetch('http://localhost:8000/layouts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(layout),
+    });
+    const data = await res.json();
+    console.log('Saved layout:', data);
+    setSavedLayouts(prev => [...prev, data]);
   };
 
-  const paginatedResults = results.slice(
-    (currentPage - 1) * RESULTS_PER_PAGE,
-    currentPage * RESULTS_PER_PAGE
-  );
+  // Fetch saved layouts on load
+  useEffect(() => {
+    fetch('http://localhost:8000/layouts')
+      .then(res => res.json())
+      .then(data => setSavedLayouts(data));
+  }, []);
+
+  // Populate layout with sample data
+  const populateWithSampleData = () => {
+    setLayout({
+      title: 'Populated Report',
+      sections: [
+        { type: 'text', content: 'This is a sample paragraph generated for preview.' },
+        { type: 'image', url: 'https://source.unsplash.com/random/300x200' },
+        {
+          type: 'table',
+          data: [
+            ['Name', 'Score'],
+            ['Alice', '95'],
+            ['Bob', '88'],
+          ],
+        },
+        {
+          type: 'chart',
+          data: [
+            { label: 'Q1', value: 100 },
+            { label: 'Q2', value: 150 },
+            { label: 'Q3', value: 80 },
+          ],
+        },
+      ],
+    });
+  };
 
   return (
-    <div style={{ padding: "2rem", maxWidth: "800px", margin: "0 auto" }}>
-      <h1>Resume Search</h1>
+    <div style={{ padding: '2rem' }}>
+      <h1>{layout.title}</h1>
 
-      <div style={{ marginBottom: "1rem", display: "flex", gap: "1rem", alignItems: "flex-end" }}>
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <label style={{ color: "#888", fontSize: "0.9rem", marginBottom: "0.2rem" }}>Search Prompt</label>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="e.g. banking"
-            style={{ padding: "0.5rem", width: "300px" }}
-          />
-        </div>
+      {/* Render current layout */}
+      {layout.sections.map((section, index) => {
+        if (section.type === 'text') return <p key={index}>{section.content}</p>;
+        if (section.type === 'image') return <img key={index} src={section.url} alt="report section" width="300" />;
+        if (section.type === 'table')
+          return (
+            <table key={index} border="1" style={{ marginTop: '1rem' }}>
+              <tbody>
+                {section.data.map((row, i) => (
+                  <tr key={i}>
+                    {row.map((cell, j) => (
+                      <td key={j} style={{ padding: '0.5rem' }}>{cell}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          );
+        if (section.type === 'chart')
+          return (
+            <div key={index} style={{ marginTop: '1rem' }}>
+              <strong>Chart (Placeholder)</strong>
+              <ul>
+                {section.data.map((point, i) => (
+                  <li key={i}>{point.label}: {point.value}</li>
+                ))}
+              </ul>
+            </div>
+          );
+        return null;
+      })}
 
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <label style={{ color: "#888", fontSize: "0.9rem", marginBottom: "0.2rem" }}>Owner</label>
-          <select
-            value={owner}
-            onChange={(e) => setOwner(e.target.value)}
-            style={{ padding: "0.5rem", width: "150px" }}
-          >
-            <option value="all">All Candidates</option>
-            {ownerOptions.map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <button style={{ padding: "0.5rem 1rem", height: "fit-content" }} onClick={handleSearch}>
-          Search
-        </button>
+      <div style={{ marginTop: '2rem' }}>
+        <button onClick={saveLayout} style={{ marginRight: '1rem' }}>Save Layout</button>
+        <button onClick={populateWithSampleData}>Populate with Sample Data</button>
       </div>
 
-      {loading && <p>Loading...</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
-      {results.length > 0 && (
-        <>
-          <h2>
-            🔍 Search Results (Showing {paginatedResults.length} of {results.length})
-          </h2>
-          {paginatedResults.map((r, i) => (
-            <div
-              key={i}
-              className="card"
-              style={{
-                marginBottom: "1rem",
-                padding: "1rem",
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-              }}
-            >
-              <h3>{r.name || "Unnamed Candidate"}</h3>
-              <p><strong>Filename:</strong> {r.filename}</p>
-              <p><strong>Score:</strong> {r.score !== null && r.score !== undefined ? `${r.score}/10` : "Not scored"}</p>
-              <p><strong>Reason:</strong> {r.reason || "N/A"}</p>
-            </div>
-          ))}
-
-          <div style={{ marginTop: "1rem" }}>
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              ⬅ Prev
-            </button>
-            <span style={{ margin: "0 1rem" }}>Page {currentPage}</span>
-            <button
-              onClick={() =>
-                setCurrentPage((p) =>
-                  p * RESULTS_PER_PAGE < results.length ? p + 1 : p
-                )
-              }
-              disabled={currentPage * RESULTS_PER_PAGE >= results.length}
-            >
-              Next ➡
-            </button>
+      {/* Saved layouts preview */}
+      <div style={{ marginTop: '3rem' }}>
+        <h2>Saved Layouts</h2>
+        {savedLayouts.map((saved, i) => (
+          <div key={i} style={{ border: '1px solid #ccc', padding: '1rem', marginBottom: '1rem' }}>
+            <h3>{saved.title}</h3>
+            {saved.sections.map((s, j) => (
+              <p key={j}><strong>{s.type}</strong></p>
+            ))}
           </div>
-        </>
-      )}
+        ))}
+      </div>
     </div>
   );
 }
-
-export default App;
