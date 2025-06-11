@@ -1,0 +1,28 @@
+# 🐍 Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+
+# 🔐 Secrets
+.env
+.venv/
+
+# 📄 Resume uploads and parsed output
+resumes/
+output/
+# 🧪 Test & build artifacts
+dist/
+build/
+*.log
+
+# 🧠 IDE & editor files
+.vscode/
+.DS_Store
+
+# 🐳 Docker/CI artifacts (if needed in the future)
+*.pid
+
+
+# 🗝️ Auth token cache (MSAL)
+token_cache.bin
