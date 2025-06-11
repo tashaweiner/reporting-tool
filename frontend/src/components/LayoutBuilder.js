@@ -1,23 +1,10 @@
 import React, { useState } from 'react';
 
-// Predefined image options
 const imageOptions = [
-  {
-    label: 'Bear',
-    url: 'https://placebear.com/300/200'
-  },
-  {
-    label: 'Performance Snapshot',
-    url: 'https://placehold.co/300x200?text=Snapshot'
-  },
-  {
-    label: 'Mountain View',
-    url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?fit=crop&w=600&q=80'
-  },
-  {
-    label: 'Office Team',
-    url: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?fit=crop&w=600&q=80'
-  }
+  { label: 'Bear', url: 'https://placebear.com/300/200' },
+  { label: 'Snapshot', url: 'https://placehold.co/300x200?text=Snapshot' },
+  { label: 'Mountain', url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?fit=crop&w=600&q=80' },
+  { label: 'Office', url: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?fit=crop&w=600&q=80' }
 ];
 
 export default function LayoutBuilder({ layout, setLayout }) {
@@ -30,9 +17,16 @@ export default function LayoutBuilder({ layout, setLayout }) {
   const addSection = () => {
     let newSection;
     if (newSectionType === 'text') newSection = { type: 'text', content: '' };
-    if (newSectionType === 'image') newSection = { type: 'image', url: '' };
-    if (newSectionType === 'table') newSection = { type: 'table', data: [['Header 1', 'Header 2']] };
-    if (newSectionType === 'chart') newSection = { type: 'chart', data: [{ label: 'A', value: 100 }] };
+    if (newSectionType === 'image') newSection = { type: 'image', url: imageOptions[0].url };
+    if (newSectionType === 'table') {
+      newSection = {
+        type: 'table',
+        data: [
+          ['Header 1', 'Header 2'],
+          ['Row 1 Col 1', 'Row 1 Col 2']
+        ]
+      };
+    }
 
     setLayout(prev => ({
       ...prev,
@@ -41,33 +35,43 @@ export default function LayoutBuilder({ layout, setLayout }) {
   };
 
   const updateSection = (index, field, value) => {
-    const updatedSections = [...layout.sections];
-    const section = { ...updatedSections[index] };
+    const updated = [...layout.sections];
+    const section = { ...updated[index] };
 
     if (section.type === 'text') section.content = value;
     if (section.type === 'image') section.url = value;
-
-    if (section.type === 'table' || section.type === 'chart') {
+    if (section.type === 'table') {
       try {
         section.data = JSON.parse(value);
-      } catch {
-        // silently ignore invalid JSON
-      }
+      } catch {}
     }
 
-    updatedSections[index] = section;
-    setLayout({ ...layout, sections: updatedSections });
+    updated[index] = section;
+    setLayout({ ...layout, sections: updated });
   };
 
   const deleteSection = (index) => {
-    const updatedSections = [...layout.sections];
-    updatedSections.splice(index, 1);
-    setLayout({ ...layout, sections: updatedSections });
+    const updated = [...layout.sections];
+    updated.splice(index, 1);
+    setLayout({ ...layout, sections: updated });
+  };
+
+  const addRow = (i) => {
+    const updated = [...layout.sections];
+    const cols = updated[i].data[0]?.length || 2;
+    updated[i].data.push(Array(cols).fill(''));
+    setLayout({ ...layout, sections: updated });
+  };
+
+  const addCol = (i) => {
+    const updated = [...layout.sections];
+    updated[i].data = updated[i].data.map(row => [...row, '']);
+    setLayout({ ...layout, sections: updated });
   };
 
   return (
     <div style={{ marginBottom: '2rem' }}>
-      <h2>🛠️ Build Your Report</h2>
+      <h2>Build Your Report</h2>
 
       <label>
         <strong>Report Title:</strong>
@@ -88,9 +92,12 @@ export default function LayoutBuilder({ layout, setLayout }) {
         >
           <option value="text">Text</option>
           <option value="image">Image</option>
-          <option value="table">Table (JSON)</option>
-          <option value="chart">Chart (JSON)</option>
+          <option value="table">Table (Editable)</option>
+          <option value="chart" disabled style={{ color: '#aaa' }}>
+            Chart (Coming Soon)
+          </option>
         </select>
+
         <button
           onClick={addSection}
           style={{
@@ -118,13 +125,11 @@ export default function LayoutBuilder({ layout, setLayout }) {
             backgroundColor: '#fafafa'
           }}
         >
-          <label><strong>{section.type.toUpperCase()} Section:</strong></label>
-
           {section.type === 'text' && (
             <textarea
               value={section.content}
               onChange={(e) => updateSection(i, 'content', e.target.value)}
-              style={{ width: '100%', padding: '0.5rem', marginTop: '0.5rem' }}
+              style={{ width: '100%', padding: '0.5rem' }}
             />
           )}
 
@@ -133,32 +138,56 @@ export default function LayoutBuilder({ layout, setLayout }) {
               <select
                 value={section.url}
                 onChange={(e) => updateSection(i, 'url', e.target.value)}
-                style={{ width: '100%', padding: '0.5rem', marginTop: '0.5rem' }}
+                style={{ width: '100%', padding: '0.5rem' }}
               >
-                <option value="">Select an image...</option>
-                {imageOptions.map((opt) => (
+                {imageOptions.map(opt => (
                   <option key={opt.url} value={opt.url}>
                     {opt.label}
                   </option>
                 ))}
               </select>
-              {section.url && (
-                <img
-                  src={section.url}
-                  alt="Preview"
-                  style={{ marginTop: '0.75rem', maxWidth: '100%', border: '1px solid #ccc' }}
-                />
-              )}
+              <img
+                src={section.url}
+                alt="Preview"
+                style={{
+                  marginTop: '0.75rem',
+                  maxWidth: '100%',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px'
+                }}
+              />
             </>
           )}
 
-          {(section.type === 'table' || section.type === 'chart') && (
-            <textarea
-              value={JSON.stringify(section.data)}
-              onChange={(e) => updateSection(i, 'data', e.target.value)}
-              placeholder="Enter JSON array"
-              style={{ width: '100%', padding: '0.5rem', marginTop: '0.5rem' }}
-            />
+          {section.type === 'table' && (
+            <div>
+              <table style={{ borderCollapse: 'collapse', marginTop: '0.5rem' }}>
+                <tbody>
+                  {section.data.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {row.map((cell, colIndex) => (
+                        <td key={colIndex} style={{ border: '1px solid #ccc', padding: '4px' }}>
+                          <input
+                            type="text"
+                            value={cell}
+                            onChange={(e) => {
+                              const updated = [...layout.sections];
+                              updated[i].data[rowIndex][colIndex] = e.target.value;
+                              setLayout({ ...layout, sections: updated });
+                            }}
+                            style={{ width: '100%' }}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ marginTop: '0.5rem' }}>
+                <button onClick={() => addRow(i)} style={{ marginRight: '0.5rem' }}>➕ Add Row</button>
+                <button onClick={() => addCol(i)}>➕ Add Column</button>
+              </div>
+            </div>
           )}
 
           <button
